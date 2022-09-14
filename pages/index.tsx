@@ -1,84 +1,89 @@
 import type { NextPage } from 'next'
-import Head from 'next/head'
-import Image from 'next/image'
+import React, {useState} from 'react'
+import axios, {AxiosResponse} from 'axios'
+import NftCard from '../components/NFTCard'
+
+const apiKey = 'O_kE5j97DCUCE6bb8SwhYzNrdNteeOaW'
+const baseUrl = `https://eth-mainnet.g.alchemy.com/nft/v2/${apiKey}`
 
 const Home: NextPage = () => {
+  const [walletAddress, setWalletAddress] = useState('')
+  const [collectionAddress, setCollectionAddress] = useState('')
+  const [NFTs, setNFTs] = useState<any[]>([])
+  const [isFetchForCollection, setIsFetchForCollection] = useState(false)
+  const [total, setTotal] = useState(0)
+
+  const fetchNFTS = async () => {
+    console.log('fetching nfts')
+    let res: AxiosResponse
+    try {
+      if (collectionAddress) {
+        res = await axios.get(`${baseUrl}/getNFTs?owner=${walletAddress}&contractAddresses%5B%5D=${collectionAddress}`)
+      } else {
+        res = await axios.get(`${baseUrl}/getNFTs?owner=${walletAddress}`)
+      }
+      const nfts = res.data
+      console.log('nfts', nfts)
+      setNFTs(nfts.ownedNfts)
+      setTotal(nfts.totalCount)
+    } catch (e) {
+      console.log('error: ', e)
+    }
+  }
+
+  const fetchNFTsForCollections = async () => {
+    if (collectionAddress) {
+      const { data } = await axios.get(`${baseUrl}/getNFTsForCollection?contractAddress=${collectionAddress}&withMetadata=${"true"}`)
+      setNFTs(data.nfts)
+      setTotal(data.nfts.length)
+    }
+  }
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center py-2">
-      <Head>
-        <title>Create Next App</title>
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
-
-      <main className="flex w-full flex-1 flex-col items-center justify-center px-20 text-center">
-        <h1 className="text-6xl font-bold">
-          Welcome to{' '}
-          <a className="text-blue-600" href="https://nextjs.org">
-            Next.js!
-          </a>
-        </h1>
-
-        <p className="mt-3 text-2xl">
-          Get started by editing{' '}
-          <code className="rounded-md bg-gray-100 p-3 font-mono text-lg">
-            pages/index.tsx
-          </code>
-        </p>
-
-        <div className="mt-6 flex max-w-4xl flex-wrap items-center justify-around sm:w-full">
-          <a
-            href="https://nextjs.org/docs"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Documentation &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Find in-depth information about Next.js features and its API.
-            </p>
-          </a>
-
-          <a
-            href="https://nextjs.org/learn"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Learn &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Learn about Next.js in an interactive course with quizzes!
-            </p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Examples &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Discover and deploy boilerplate example Next.js projects.
-            </p>
-          </a>
-
-          <a
-            href="https://vercel.com/import?filter=next.js&utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className="mt-6 w-96 rounded-xl border p-6 text-left hover:text-blue-600 focus:text-blue-600"
-          >
-            <h3 className="text-2xl font-bold">Deploy &rarr;</h3>
-            <p className="mt-4 text-xl">
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
-
-      <footer className="flex h-24 w-full items-center justify-center border-t">
-        <a
-          className="flex items-center justify-center gap-2"
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+    <div className="flex flex-col items-center justify-center py-8 gap-y-3">
+      <div className="flex flex-col w-full justify-center items-center gap-y-2">
+        <input
+          disabled={isFetchForCollection}
+          className="w-2/5 bg-slate-100 py-2 px-2 rounded-lg text-gray-500 focus:outline-blue-300 disabled:bg-slate-50 disabled:text-gray-50"
+          value={walletAddress}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setWalletAddress(e.target.value)
+          }
+          type="text"
+          placeholder={"Add your wallet address"}
+        />
+        <input
+          className="w-2/5 bg-slate-100 py-2 px-2 rounded-lg text-gray-500 focus:outline-blue-300 disabled:bg-slate-50 disabled:text-gray-50"
+          value={collectionAddress}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setCollectionAddress(e.target.value)
+          }
+          type="text"
+          placeholder={"Add the collection address"}
+        />
+        <label className="text-gray-600">
+          <input className="mr-2" onChange={e => setIsFetchForCollection(e.target.checked)} type="checkbox"/>Fetch for collection
+        </label>
+        <button
+          className="disabled:bg-slate-500 text-white bg-blue-400 px-4 py-2 mt-3 rounded-sm w-1/5"
+          onClick={isFetchForCollection ? fetchNFTsForCollections: fetchNFTS}
         >
-          Powered by{' '}
-          <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-        </a>
-      </footer>
+          Let's go
+        </button>
+      </div>
+      <div>Total: {total}</div>
+      <div className="flex flex-wrap gap-y-12 mt-4 w-5/6 gap-x-2 justify-center">
+        {
+          NFTs.map(nft => <NftCard
+            key={nft.id.tokenId}
+            title={nft.title}
+            nftImg={nft.media[0].gateway}
+            tokenId={nft.id.tokenId.slice(-4)}
+            contractAddress={nft.contract.address}
+            description={nft.description}
+          />)
+        }
+      </div>
     </div>
   )
 }
